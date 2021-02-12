@@ -23,6 +23,7 @@ var toolNames = []string{
 	"mongoimport", "mongoexport",
 	"mongostat", "mongotop",
 	"mongofiles",
+	"mongotransit",
 }
 
 // BuildTools is an Executor that builds the tools.

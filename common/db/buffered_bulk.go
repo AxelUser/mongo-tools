@@ -43,7 +43,7 @@ func NewOrderedBufferedBulkInserter(collection *mongo.Collection, docLimit int) 
 	return newBufferedBulkInserter(collection, docLimit, true)
 }
 
-// NewOrderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing unordered bulk writes.
+// NewUnorderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing unordered bulk writes.
 func NewUnorderedBufferedBulkInserter(collection *mongo.Collection, docLimit int) *BufferedBulkInserter {
 	return newBufferedBulkInserter(collection, docLimit, false)
 }
