@@ -51,6 +51,10 @@ func ExportAll(ctx context.Context, plan ExportPlan) ([]ExportedCollection, erro
 	}
 
 	for _, irs := range plan.Iterative {
+		if irs.Lag == 0 {
+			log.Logvf(log.Always, "%s collection is up to date, skipping export", irs.Name)
+			continue
+		}
 		opts, err := prepareIterativeExportOptions(plan.ConnectionString, plan.Output, irs)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create iterative export options for collection %s", irs.Name)

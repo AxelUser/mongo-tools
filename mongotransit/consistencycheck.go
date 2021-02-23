@@ -70,7 +70,7 @@ func CheckIterDumpProgress(ctx context.Context, scClient mongo.Client, rsClient 
 				succeded = append(succeded, r.state)
 			}
 		case <-ctx.Done():
-			return
+			return nil, nil, errors.New("concistency check was cancelled")
 		}
 	}
 
