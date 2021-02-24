@@ -79,6 +79,7 @@ func CheckIterDumpProgress(ctx context.Context, opt Options) (succeded []Iterati
 				log.Logvf(log.Always, "failed to check collection %s: %v", r.collection.Name, r.err)
 				failed = append(failed, r.collection)
 			} else {
+				log.Logvf(log.Always, "collection %s has checkpoint %s and lag %d", r.collection.Name, r.state.Checkpoint.UTC().Format(time.RFC3339), r.state.Lag)
 				succeded = append(succeded, r.state)
 			}
 		case <-ctx.Done():
@@ -98,7 +99,7 @@ func checkCollection(ctx context.Context, scClient *mongo.Client, rsClient *mong
 	}
 
 	if !contains(collections, string(collection.Name)) {
-		resultsCh <- collectionCheckResult{collection: collection, err: errors.Wrapf(err, "collection %s doesn't exist in database %s", collection.Name, collection.DB)}
+		resultsCh <- collectionCheckResult{collection: collection, err: fmt.Errorf("collection %s doesn't exist in database %s", collection.Name, collection.DB)}
 		return
 	}
 
@@ -114,7 +115,6 @@ func checkCollection(ctx context.Context, scClient *mongo.Client, rsClient *mong
 		return
 	}
 
-	log.Logvf(log.Always, "collection %s has checkpoint %s and lag %d", collection.Name, checkpoint.UTC().Format(time.RFC3339), lag)
 	resultsCh <- collectionCheckResult{collection: collection, state: IterativeRestoreState{
 		CollectionOption: collection,
 		Checkpoint:       checkpoint,

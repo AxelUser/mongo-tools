@@ -26,7 +26,7 @@ func ImportAll(ctx context.Context, connectionString string, collections []Expor
 		}
 
 		return strings.Join(names, ", ")
-	})
+	}())
 
 	var options []mongoimport.Options
 	for _, collection := range collections {
