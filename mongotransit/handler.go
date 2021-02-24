@@ -8,8 +8,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -25,17 +23,6 @@ type result struct {
 // Run starts the whole transition mechanism
 func Run(ctx context.Context, opts Options, iterations int, phase Phase) error {
 	log.Logv(log.Always, "started transition handler")
-	shardClient, err := mongo.Connect(ctx, options.Client().ApplyURI(opts.ShardedCluster))
-	if err != nil {
-		return errors.Wrapf(err, "failed to connect to sharded cluster")
-	}
-	defer shardClient.Disconnect(ctx)
-
-	replicaClient, err := mongo.Connect(ctx, options.Client().ApplyURI(opts.ReplicaSet))
-	if err != nil {
-		return errors.Wrapf(err, "failed to connect to replica set")
-	}
-	defer replicaClient.Disconnect(ctx)
 
 	iterationsCh := make(chan int)
 	go func(initital int) {
@@ -65,7 +52,7 @@ func Run(ctx context.Context, opts Options, iterations int, phase Phase) error {
 		default:
 		}
 
-		succeded, failures, err := CheckIterDumpProgress(ctx, *shardClient, *replicaClient, opts)
+		succeded, failures, err := CheckIterDumpProgress(ctx, opts)
 		if err != nil {
 			return errors.Wrapf(err, "failed to check collections")
 		}

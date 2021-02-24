@@ -21,9 +21,21 @@ type collectionCheckResult struct {
 }
 
 // CheckIterDumpProgress gets last checkpoints and lags for collections, which support iterative dump.
-func CheckIterDumpProgress(ctx context.Context, scClient mongo.Client, rsClient mongo.Client, opt Options) (succeded []IterativeRestoreState, failed []CollectionOption, err error) {
+func CheckIterDumpProgress(ctx context.Context, opt Options) (succeded []IterativeRestoreState, failed []CollectionOption, err error) {
+	shardClient, err := mongo.Connect(ctx, options.Client().ApplyURI(opt.ShardedCluster))
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to connect to sharded cluster")
+	}
+	defer shardClient.Disconnect(ctx)
+
+	replicaClient, err := mongo.Connect(ctx, options.Client().ApplyURI(opt.ReplicaSet))
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to connect to replica set")
+	}
+	defer replicaClient.Disconnect(ctx)
+
 	log.Logv(log.Always, "stated check for iterative dump")
-	databases, err := scClient.ListDatabaseNames(ctx, bson.M{})
+	databases, err := shardClient.ListDatabaseNames(ctx, bson.M{})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "couldn't list databases at sharded cluster")
 	}
@@ -54,7 +66,7 @@ func CheckIterDumpProgress(ctx context.Context, scClient mongo.Client, rsClient 
 
 	results := make(chan collectionCheckResult, len(collectionForIterativeExport))
 	for _, collection := range collectionForIterativeExport {
-		go checkCollection(ctx, scClient, rsClient, collection, results)
+		go checkCollection(ctx, shardClient, replicaClient, collection, results)
 	}
 
 	for range collectionForIterativeExport {
@@ -77,7 +89,7 @@ func CheckIterDumpProgress(ctx context.Context, scClient mongo.Client, rsClient 
 	return succeded, failed, err
 }
 
-func checkCollection(ctx context.Context, scClient mongo.Client, rsClient mongo.Client, collection CollectionOption, resultsCh chan<- collectionCheckResult) {
+func checkCollection(ctx context.Context, scClient *mongo.Client, rsClient *mongo.Client, collection CollectionOption, resultsCh chan<- collectionCheckResult) {
 	log.Logvf(log.Always, "checking collection %s for possibility of iterative export", collection.Name)
 	collections, err := scClient.Database(string(collection.DB)).ListCollectionNames(ctx, bson.M{})
 	if err != nil {
@@ -110,7 +122,7 @@ func checkCollection(ctx context.Context, scClient mongo.Client, rsClient mongo.
 	}}
 }
 
-func getCheckpoint(ctx context.Context, client mongo.Client, collection CollectionOption) (time.Time, error) {
+func getCheckpoint(ctx context.Context, client *mongo.Client, collection CollectionOption) (time.Time, error) {
 
 	cursor, err := client.Database(string(collection.DB)).Collection(string(collection.Name)).Find(ctx, bson.M{
 		collection.IterativeExport.Field: bson.M{
@@ -133,7 +145,7 @@ func getCheckpoint(ctx context.Context, client mongo.Client, collection Collecti
 	return checkpoint, nil
 }
 
-func countLag(ctx context.Context, client mongo.Client, collection CollectionOption, checkpoint time.Time) (int64, error) {
+func countLag(ctx context.Context, client *mongo.Client, collection CollectionOption, checkpoint time.Time) (int64, error) {
 	return client.Database(string(collection.DB)).Collection(string(collection.Name)).CountDocuments(ctx, bson.M{
 		collection.IterativeExport.Field: bson.M{
 			"$gt": checkpoint,
