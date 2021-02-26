@@ -12,10 +12,12 @@ type Database string
 
 // Options contains CLI options
 type Options struct {
-	ReplicaSet     string             `yaml:"replicaSet"`
-	ShardedCluster string             `yaml:"shardedCluster"`
-	OutputDir      string             `yaml:"outputDir"`
-	Collections    []CollectionOption `yaml:"collections"`
+	ReplicaSet      string             `yaml:"replicaSet"`
+	ShardedCluster  string             `yaml:"shardedCluster"`
+	OutputDir       string             `yaml:"outputDir"`
+	ImportWorkers   int                `yaml:"importWorkers"`
+	ImportBatchSize int                `yaml:"importBatchSize"`
+	Collections     []CollectionOption `yaml:"collections"`
 }
 
 type CollectionOption struct {
@@ -26,8 +28,9 @@ type CollectionOption struct {
 }
 
 type IterativeExportOptions struct {
-	Field string `yaml:"field"`
-	Force bool   `yanl:"force"`
+	Field            string `yaml:"field"`
+	Force            bool   `yaml:"force"`
+	ForcedCheckpoint string `yaml:"forcedCheckpoint"`
 }
 
 // ReadConfigFile parses config yaml file

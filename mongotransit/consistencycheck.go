@@ -123,6 +123,14 @@ func checkCollection(ctx context.Context, scClient *mongo.Client, rsClient *mong
 }
 
 func getCheckpoint(ctx context.Context, client *mongo.Client, collection CollectionOption) (time.Time, error) {
+	if collection.IterativeExport.ForcedCheckpoint != "" {
+		parsed, err := time.Parse(time.RFC3339, collection.IterativeExport.ForcedCheckpoint)
+		if err != nil {
+			return time.Time{}, errors.Wrapf(err, "failed to parse forced checkpoint")
+		}
+
+		log.Logvf(log.Always, "forced checkpoint %s for collection %s", parsed.UTC().Format(time.RFC3339), collection.Name)
+	}
 
 	cursor, err := client.Database(string(collection.DB)).Collection(string(collection.Name)).Find(ctx, bson.M{
 		collection.IterativeExport.Field: bson.M{

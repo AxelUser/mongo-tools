@@ -62,7 +62,7 @@ func Run(ctx context.Context, opts Options, iterations int, phase Phase) error {
 			return errors.Wrapf(err, "failed to export data from replica set")
 		}
 
-		err = ImportAll(ctx, opts.ShardedCluster, exported)
+		err = ImportAll(ctx, opts.ShardedCluster, exported, opts.ImportWorkers, opts.ImportBatchSize)
 		if err != nil {
 			return errors.Wrapf(err, "failed to import data into sharded cluster")
 		}

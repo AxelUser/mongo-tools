@@ -3,6 +3,7 @@ package mongotransit
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -10,7 +11,7 @@ import (
 )
 
 // ImportAll function restores dumps from specified directory
-func ImportAll(ctx context.Context, connectionString string, collections []ExportedCollection) error {
+func ImportAll(ctx context.Context, connectionString string, collections []ExportedCollection, workersPerCPU int, batchSize int) error {
 
 	if len(collections) == 0 {
 		log.Logv(log.Always, "no collections for import")
@@ -30,7 +31,7 @@ func ImportAll(ctx context.Context, connectionString string, collections []Expor
 
 	var options []mongoimport.Options
 	for _, collection := range collections {
-		restoreOptions, err := prepareOptions(connectionString, collection)
+		restoreOptions, err := prepareOptions(connectionString, collection, workersPerCPU, batchSize)
 		if err != nil {
 			return err
 		}
@@ -73,15 +74,17 @@ func ImportAll(ctx context.Context, connectionString string, collections []Expor
 	return nil
 }
 
-func prepareOptions(connectionString string, exportedCollection ExportedCollection) (mongoimport.Options, error) {
+func prepareOptions(connectionString string, exportedCollection ExportedCollection, workersPerCPU int, batchSize int) (mongoimport.Options, error) {
 	restoreOptions := []string{
 		connectionString,
 		fmt.Sprintf("--file=%s", exportedCollection.FilePath),
 		fmt.Sprintf("-d=%s", exportedCollection.DB),
 		fmt.Sprintf("-c=%s", exportedCollection.Name),
+		fmt.Sprintf("--numDecodingWorkers=%d", runtime.NumCPU()*workersPerCPU),
+		fmt.Sprintf("--numInsertionWorkers=%d", runtime.NumCPU()*workersPerCPU),
+		fmt.Sprintf("--batchSize=%d", batchSize),
 		"--bypassDocumentValidation",
 		"--mode=upsert",
-		"--numInsertionWorkers=10",
 	}
 
 	if exportedCollection.UpsertFields != nil && len(exportedCollection.UpsertFields) > 0 {
